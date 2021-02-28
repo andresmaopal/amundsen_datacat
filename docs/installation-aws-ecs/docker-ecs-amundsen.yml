@@ -62,7 +62,7 @@ services:
         driver: awslogs
         options: 
           awslogs-group: amundsensearch
-          awslogs-region: us-west-2
+          awslogs-region: us-east-1
           awslogs-stream-prefix: amundsensearch
 
   amundsenmetadata:
@@ -81,7 +81,7 @@ services:
         driver: awslogs
         options: 
           awslogs-group: amundsenmetadata
-          awslogs-region: us-west-2
+          awslogs-region: us-east-1
           awslogs-stream-prefix: amundsenmetadata
 
   amundsenfrontend:
