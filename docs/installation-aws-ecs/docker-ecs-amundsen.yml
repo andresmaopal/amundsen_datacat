@@ -19,11 +19,18 @@ services:
       ports:
           - 7474:7474
           - 7687:7687
+      volumes:
+          - ./example/docker/neo4j/conf:/conf
+          - ./example/docker/neo4j/plugins:/plugins
+          - ./example/backup:/backup
+          - neo4j_data:/neo4j/data
+      networks:
+        - amundsennet      
       logging:
         driver: awslogs
         options: 
           awslogs-group: amundsen-neo4j
-          awslogs-region: us-west-2
+          awslogs-region: us-east-1
           awslogs-stream-prefix: amundsen-neo4j
 
   elasticsearch:
@@ -31,6 +38,8 @@ services:
       container_name: es_amundsen
       ports:
           - 9200:9200
+      volumes:
+        - es_data:/usr/share/elasticsearch/data          
       ulimits:
         nofile:
            soft: 65536
@@ -39,18 +48,21 @@ services:
         driver: awslogs
         options: 
           awslogs-group: amundsen-elasticsearch
-          awslogs-region: us-west-2
+          awslogs-region: us-east-1
           awslogs-stream-prefix: amundsen-elasticsearch
 
   amundsensearch:
-      image: amundsendev/amundsen-search:1.1.1
+      image: amundsendev/amundsen-search:2.4.1
       container_name: amundsensearch
       ports:
         - 5001:5000
       depends_on:
         - elasticsearch
+      networks:
+        - amundsennet        
       environment:
         - PROXY_ENDPOINT=es_amundsen
+      command: gunicorn -w 2 --bind :5000 search_service.search_wsgi        
       logging:
         driver: awslogs
         options: 
@@ -59,14 +71,17 @@ services:
           awslogs-stream-prefix: amundsensearch
 
   amundsenmetadata:
-      image: amundsendev/amundsen-metadata:1.0.7
+      image: amundsendev/amundsen-metadata:3.0.0
       container_name: amundsenmetadata
       depends_on:
         - neo4j
       ports:
         - 5002:5000
+      networks:
+        - amundsennet        
       environment:
          - PROXY_HOST=bolt://neo4j_amundsen
+      command: gunicorn -w 2 --bind :5000 metadata_service.metadata_wsgi         
       logging:
         driver: awslogs
         options: 
@@ -75,16 +90,20 @@ services:
           awslogs-stream-prefix: amundsenmetadata
 
   amundsenfrontend:
-      image: amundsendev/amundsen-frontend:1.0.5
+      image: amundsendev/amundsen-frontend:3.1.0
       container_name: amundsenfrontend
       depends_on:
         - amundsenmetadata
         - amundsensearch
       ports:
         - 5000:5000
+      networks:
+        - amundsennet        
       environment:
         - SEARCHSERVICE_BASE=http://amundsensearch:5000
         - METADATASERVICE_BASE=http://amundsenmetadata:5000
+        - FRONTEND_SVC_CONFIG_MODULE_CLASS=amundsen_application.config.TestConfig
+      command: gunicorn -w 2 --bind :5000 amundsen_application.wsgi        
       logging:
         driver: awslogs
         options: 
@@ -92,4 +111,10 @@ services:
           awslogs-region: us-west-2
           awslogs-stream-prefix: amundsenfrontend
 
+networks:
+  amundsennet:
+
+volumes:
+  es_data:
+  neo4j_data:
 
