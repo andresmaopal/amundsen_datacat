@@ -141,7 +141,7 @@ class LocalConfig(Config):
     METADATA_PORT = '5002'
 
     # If installing using the Docker bootstrap, this should be modified to the docker host ip. On this case the name of docker dependency
-    LOCAL_HOST = 'neo4j_amundsen'
+    LOCAL_HOST = '10.0.0.30'
 
 
     FRONTEND_BASE = os.environ.get('FRONTEND_BASE',
