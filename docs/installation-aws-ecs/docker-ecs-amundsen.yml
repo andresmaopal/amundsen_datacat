@@ -12,11 +12,6 @@ services:
       ports:
           - 7474:7474
           - 7687:7687
-      volumes:
-          - ./example/docker/neo4j/conf:/conf
-          - ./example/docker/neo4j/plugins:/plugins
-          - ./example/backup:/backup
-          - neo4j_data:/neo4j/data     
       logging:
         driver: awslogs
         options: 
@@ -29,8 +24,6 @@ services:
       container_name: es_amundsen
       ports:
           - 9200:9200
-      volumes:
-        - es_data:/usr/share/elasticsearch/data
       ulimits:
         nofile:
           soft: 65536
