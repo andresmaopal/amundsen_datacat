@@ -1,17 +1,10 @@
 version: '3'
 services:
   neo4j:
-      image: neo4j:3.3.0
+      image: neo4j:latest
       container_name: neo4j_amundsen
       environment:
         - NEO4J_AUTH=neo4j/test
-        # These dont seem to be working though!
-        - NEO4J_dbms.active_database=amundsen.db
-        - NEO4J_dbms.directories.data=/neo4j/data
-        - NEO4J_dbms.directories.logs=/var/log/neo4j
-        - NEO4J_dbms.directories.import=/var/lib/neo4j/import
-        - NEO4J_dbms.security.auth_enabled=false
-        - NEO4J_dbms.connectors.default_listen_address=0.0.0.0
       ulimits:
         nofile:
           soft: 40000
@@ -39,11 +32,13 @@ services:
       ports:
           - 9200:9200
       volumes:
-        - es_data:/usr/share/elasticsearch/data          
+        - es_data:/usr/share/elasticsearch/data
+      networks:
+        - amundsennet
       ulimits:
         nofile:
-           soft: 65536
-           hard: 65536
+          soft: 65536
+          hard: 65536    
       logging:
         driver: awslogs
         options: 
@@ -59,11 +54,11 @@ services:
       depends_on:
         - elasticsearch
       networks:
-        - amundsennet        
+        - amundsennet
       environment:
         - PROXY_ENDPOINT=es_amundsen
-      command: gunicorn -w 2 --bind :5000 search_service.search_wsgi        
-      logging:
+      command: gunicorn -w 2 --bind :5000 search_service.search_wsgi
+      logging:      
         driver: awslogs
         options: 
           awslogs-group: amundsensearch
@@ -78,10 +73,10 @@ services:
       ports:
         - 5002:5000
       networks:
-        - amundsennet        
+        - amundsennet
       environment:
          - PROXY_HOST=bolt://neo4j_amundsen
-      command: gunicorn -w 2 --bind :5000 metadata_service.metadata_wsgi         
+      command: gunicorn -w 2 --bind :5000 metadata_service.metadata_wsgi          
       logging:
         driver: awslogs
         options: 
@@ -98,17 +93,21 @@ services:
       ports:
         - 5000:5000
       networks:
-        - amundsennet        
+        - amundsennet
       environment:
         - SEARCHSERVICE_BASE=http://amundsensearch:5000
         - METADATASERVICE_BASE=http://amundsenmetadata:5000
+        # Only for easy config-less Quickstart bookmark evalutation. `TestConfig` extends ordinary `LocalConfig` by
+        # defining `AUTH_USER_METHOD` to a hardcoded dummy user in `amundsen_application.tests.test_utils.get_test_user()`
+        # See further docs in https://github.com/amundsen-io/amundsenfrontendlibrary/blob/master/docs/configuration.md#flask
+        # and https://github.com/amundsen-io/amundsenfrontendlibrary/blob/master/docs/configuration.md#authentication
         - FRONTEND_SVC_CONFIG_MODULE_CLASS=amundsen_application.config.TestConfig
-      command: gunicorn -w 2 --bind :5000 amundsen_application.wsgi        
+      command: gunicorn -w 2 --bind :5000 amundsen_application.wsgi      
       logging:
         driver: awslogs
         options: 
           awslogs-group: amundsenfrontend
-          awslogs-region: us-west-2
+          awslogs-region: us-east-1
           awslogs-stream-prefix: amundsenfrontend
 
 networks:
