@@ -12,6 +12,13 @@ services:
       ports:
           - 7474:7474
           - 7687:7687
+      volumes:
+          - ./example/docker/neo4j/conf:/conf
+          - ./example/docker/neo4j/plugins:/plugins
+          - ./example/backup:/backup
+          - neo4j_data:/neo4j/data
+      networks:
+        - amundsennet
       logging:
         driver: awslogs
         options: 
@@ -24,6 +31,10 @@ services:
       container_name: es_amundsen
       ports:
           - 9200:9200
+      volumes:
+        - es_data:/usr/share/elasticsearch/data
+      networks:
+        - amundsennet
       ulimits:
         nofile:
           soft: 65536
@@ -42,6 +53,8 @@ services:
         - 5001:5000
       depends_on:
         - elasticsearch
+      networks:
+        - amundsennet
       environment:
         - PROXY_ENDPOINT=es_amundsen
       command: gunicorn -w 2 --bind :5000 search_service.search_wsgi
@@ -59,6 +72,8 @@ services:
         - neo4j
       ports:
         - 5002:5000
+      networks:
+        - amundsennet
       environment:
          - PROXY_HOST=bolt://neo4j_amundsen
       command: gunicorn -w 2 --bind :5000 metadata_service.metadata_wsgi          
@@ -77,6 +92,8 @@ services:
         - amundsensearch
       ports:
         - 5000:5000
+      networks:
+        - amundsennet        
       environment:
         - SEARCHSERVICE_BASE=http://amundsensearch:5000
         - METADATASERVICE_BASE=http://amundsenmetadata:5000
@@ -92,4 +109,11 @@ services:
           awslogs-group: amundsenfrontend
           awslogs-region: us-east-1
           awslogs-stream-prefix: amundsenfrontend
+networks:
+  amundsennet:
+
+volumes:
+  es_data:
+  neo4j_data:
+
 
